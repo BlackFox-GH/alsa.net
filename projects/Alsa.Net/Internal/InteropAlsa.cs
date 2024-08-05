@@ -20,7 +20,13 @@ namespace Alsa.Net.Internal
         public static extern int snd_pcm_pause(IntPtr pcm, int enable);
 
         [DllImport(AlsaLibrary)]
+        public static extern int snd_pcm_hw_params_can_pause();
+
+        [DllImport(AlsaLibrary)]
         public static extern int snd_pcm_resume(IntPtr pcm);
+
+        [DllImport(AlsaLibrary)]
+        public static extern int snd_pcm_prepare(IntPtr pcm);
 
         [DllImport(AlsaLibrary)]
         public static extern int snd_pcm_drain(IntPtr pcm);

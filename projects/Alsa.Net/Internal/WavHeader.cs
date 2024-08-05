@@ -141,6 +141,8 @@ namespace Alsa.Net.Internal
                 wavStream.Read(readBuffer4);
                 header.ByteRate = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
+                System.Console.WriteLine(header.ByteRate);
+
                 wavStream.Read(readBuffer2);
                 header.BlockAlign = BinaryPrimitives.ReadUInt16LittleEndian(readBuffer2);
 

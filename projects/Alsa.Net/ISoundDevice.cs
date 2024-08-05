@@ -56,6 +56,16 @@ namespace Alsa.Net
         void Play(string wavPath, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Pauses the player
+        /// </summary>
+        void Pause();
+
+        /// <summary>
+        /// Resumes the player
+        /// </summary>
+        void PlayFrom(long ms);
+
+        /// <summary>
         /// play a wav stream until end of stream oder cancellation
         /// </summary>
         /// <param name="wavStream">stream of wav data to play</param>

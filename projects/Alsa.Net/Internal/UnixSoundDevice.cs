@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -10,6 +12,11 @@ namespace Alsa.Net.Internal
         static readonly object PlaybackInitializationLock = new();
         static readonly object RecordingInitializationLock = new();
         static readonly object MixerInitializationLock = new();
+
+        private readonly ManualResetEvent PlayPause = new ManualResetEvent(true);
+
+        private Stream wavStream;
+        private uint byteRate;
 
         public SoundDeviceSettings Settings { get; }
         public long PlaybackVolume { get => GetPlaybackVolume(); set => SetPlaybackVolume(value); }
@@ -25,9 +32,32 @@ namespace Alsa.Net.Internal
         IntPtr _mixelElement;
         bool _wasDisposed;
 
+        private long headerEnd=-1;
+        pause_state paused = pause_state.PLAYING;
+
         public UnixSoundDevice(SoundDeviceSettings settings)
         {
             Settings = settings;
+        }
+
+        public void Pause()
+        {
+            System.Console.WriteLine("Pause sent!!!");
+            paused = pause_state.JUSTPAUSED;
+            PlayPause.Reset();
+        }
+
+        public void PlayFrom(long ms)
+        {
+            System.Console.WriteLine("Resume sent!");
+            long position=headerEnd+((long)Math.Floor(Convert.ToDouble(ms)/1000*byteRate));
+            if(position<=wavStream.Length){
+                wavStream.Position=position;
+                InteropAlsa.snd_pcm_drop(_playbackPcm);
+                InteropAlsa.snd_pcm_prepare(_playbackPcm);
+                paused=pause_state.PLAYING;
+                PlayPause.Set();
+            }
         }
 
         public void Play(string wavPath)
@@ -60,10 +90,12 @@ namespace Alsa.Net.Internal
         {
             if (_wasDisposed)
                 throw new ObjectDisposedException(nameof(UnixSoundDevice));
-
+            this.wavStream=wavStream;
             var parameter = new IntPtr();
             var dir = 0;
             var header = WavHeader.FromStream(wavStream);
+            byteRate=header.ByteRate;
+            headerEnd=wavStream.Position;
 
             OpenPlaybackPcm();
             PcmInitialize(_playbackPcm, header, ref parameter, ref dir);
@@ -138,9 +170,20 @@ namespace Alsa.Net.Internal
 
             fixed (byte* buffer = readBuffer)
             {
+                //long parts=0;
                 while (!_wasDisposed && !cancellationToken.IsCancellationRequested && wavStream.Read(readBuffer) != 0)
                 {
+                    // play/pause implementation goes here
+                    //System.Console.WriteLine("Playing part "+parts++);
+
+                    //System.Console.WriteLine(wavStream.Position);
+                    PlayPause.WaitOne();
                     ThrowErrorMessage(InteropAlsa.snd_pcm_writei(_playbackPcm, (IntPtr)buffer, frames), ExceptionMessages.CanNotWriteToDevice);
+                    if (paused==pause_state.JUSTPAUSED)
+                    {
+                        paused=pause_state.PAUSED;
+                        InteropAlsa.snd_pcm_drop(_playbackPcm);
+                    }
                 }
             }
         }

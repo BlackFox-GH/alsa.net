@@ -1,5 +1,12 @@
 ﻿namespace Alsa.Net.Internal
 {
+    enum pause_state
+    {
+        JUSTPAUSED=-1,
+        PAUSED=0,
+        PLAYING=1
+    }
+
     enum snd_pcm_stream_t
     {
         SND_PCM_STREAM_PLAYBACK = 0,
