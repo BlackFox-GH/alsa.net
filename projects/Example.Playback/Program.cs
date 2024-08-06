@@ -1,6 +1,5 @@
 ﻿using Alsa.Net;
 using Alsa.Net.Internal;
-using System;
 using System.IO;
 using System.Threading;
 
